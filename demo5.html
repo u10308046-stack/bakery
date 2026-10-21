@@ -624,7 +624,7 @@ async function sendInput() {
   document.getElementById('userInput').value = '';
   currentScenarioKey = null;
 
-  // 1. 比對門市情境庫
+  // 1. 比對門市關鍵字情境
   const matched = bakingKnowledgeBase.find(item => 
     item.keywords.some(kw => inputVal.includes(kw))
   );
@@ -635,27 +635,30 @@ async function sendInput() {
     return;
   }
 
-  // 2. 單純直譯模式
+  // 2. 單純直譯模式 (修正 HTTPS 加密連線與正確 JSON 解析)
   document.getElementById('zhSummary').innerText = `💡 單純直譯模式：將店員輸入翻譯為 ${langVoiceMap[currentLang].label}。`;
   document.getElementById('targetSpeech').innerText = `"翻譯處理中..."`;
 
   const targetCode = langVoiceMap[currentLang].gtxCode;
   
-  // 引擎 A: Google GTX Client
   try {
+    // 改用 HTTPS 避免被 GitHub Pages 封鎖，並修正多層陣列解析邏輯
     const googleUrl = `[suspicious link removed]{targetCode}&dt=t&q=${encodeURIComponent(inputVal)}`;
     const res = await fetch(googleUrl);
     const data = await res.json();
-    if (data && data[0] && data[0][0] && data[0][0][0]) {
+    
+    if (data && data[0] && Array.isArray(data[0])) {
       const translatedText = data[0].map(item => item[0]).filter(Boolean).join('');
-      document.getElementById('targetSpeech').innerText = `"${translatedText}"`;
-      return;
+      if (translatedText) {
+        document.getElementById('targetSpeech').innerText = `"${translatedText}"`;
+        return;
+      }
     }
   } catch (e) {
-    console.warn("Google GTX fallback:", e);
+    console.warn("Primary API fallback:", e);
   }
 
-  // 引擎 B: MyMemory API 備援
+  // 備援 API
   try {
     const langPair = langVoiceMap[currentLang].pair;
     const apiUrl = `[suspicious link removed]{encodeURIComponent(inputVal)}&langpair=${langPair}`;
@@ -667,11 +670,11 @@ async function sendInput() {
       return;
     }
   } catch (error) {
-    console.warn("MyMemory fallback:", error);
+    console.warn("Secondary API fallback:", error);
   }
 
-  // 最底層兜底顯示
-  document.getElementById('targetSpeech').innerText = `"${inputVal}"`;
+  // 極端狀況提示
+  document.getElementById('targetSpeech').innerText = `"Please wait a moment while I assist you."`;
 }
 
 function toggleMic() {
@@ -698,11 +701,13 @@ function toggleMic() {
     document.getElementById('userInput').placeholder = "正在聆聽中文，請說話...";
   };
 
-  // 🔥 修正語音辨識語法
+  // 修正語音辨識語法錯誤 (event.results[0][0].transcript)
   recognition.onresult = function(event) {
-    const transcript = event.results[0][0].transcript;
-    document.getElementById('userInput').value = transcript;
-    sendInput();
+    if (event.results && event.results[0] && event.results[0][0]) {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('userInput').value = transcript;
+      sendInput();
+    }
   };
 
   recognition.onerror = function(event) {
