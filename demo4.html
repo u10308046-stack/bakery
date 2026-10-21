@@ -328,7 +328,7 @@
   }
   .send-btn:active { transform: scale(0.95); }
 
-  /* 滿版大字 Modal */
+  /* 滿版大字 Modal - 優化關閉按鈕設計 */
   .fullscreen-modal {
     display: none; 
     position: absolute; 
@@ -338,14 +338,58 @@
     height: 100%;
     background: #fdfbf7; 
     z-index: 999; 
-    padding: 30px 24px; 
+    padding: 40px 24px 30px 24px; 
     flex-direction: column; 
     justify-content: center; 
     align-items: center; 
     text-align: center;
+    border-radius: 38px;
   }
   .fullscreen-modal.active { display: flex; }
-  .big-text { font-size: 23px; font-weight: 800; color: #2b231d; line-height: 1.55; margin-bottom: 30px; }
+  
+  /* 右上角優雅圓形 X 關閉鈕 */
+  .modal-close-icon {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f4efe6;
+    border: 1px solid #e5dcd0;
+    color: #6e6359;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  .modal-close-icon:active { transform: scale(0.92); }
+
+  .big-text { 
+    font-size: 22px; 
+    font-weight: 800; 
+    color: #2b231d; 
+    line-height: 1.55; 
+    margin-bottom: 20px; 
+    max-width: 90%;
+  }
+
+  /* 底部細緻小巧關閉鍵 */
+  .subtle-close-btn {
+    background: transparent;
+    border: 1px solid #e5dcd0;
+    color: #8c7e72;
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .subtle-close-btn:hover { background: #f4efe6; }
 
   @keyframes pulse {
     0% { transform: scale(1); }
@@ -428,8 +472,9 @@
 
   <!-- 滿版大字 Modal -->
   <div class="fullscreen-modal" id="bigTextModal">
+    <button class="modal-close-icon" onclick="closeBigText()" title="關閉">✕</button>
     <div class="big-text" id="bigTextContent"></div>
-    <button class="act-btn primary" style="padding:14px 28px; font-size:16px; border-radius:24px;" onclick="closeBigText()">✕ 關閉大字視窗</button>
+    <button class="subtle-close-btn" onclick="closeBigText()">點擊關閉 Close</button>
   </div>
 </div>
 
@@ -564,7 +609,6 @@ function renderCurrentSpeech() {
   }
 }
 
-// 🔥 開放式 CORS API 加上備援機制，100% 不跳錯
 async function sendInput() {
   const inputVal = document.getElementById('userInput').value.trim();
   if (!inputVal) return;
@@ -573,7 +617,6 @@ async function sendInput() {
   document.getElementById('userInput').value = '';
   currentScenarioKey = null;
 
-  // 1. 先比對門市烘焙知識庫
   const matched = bakingKnowledgeBase.find(item => 
     item.keywords.some(kw => inputVal.includes(kw))
   );
@@ -584,8 +627,7 @@ async function sendInput() {
     return;
   }
 
-  // 2. 呼叫支援跨網域 (CORS) 的 MyMemory 即時翻譯 API
-  document.getElementById('zhSummary').innerText = `💡 AI 即時翻譯：已將店員輸入轉換為符合語境的對法。`;
+  document.getElementById('zhSummary').innerText = `💡 AI 即時翻譯：已將店員輸入轉換為符合語境的外語對答。`;
   document.getElementById('targetSpeech').innerText = `"翻譯處理中..."`;
 
   try {
