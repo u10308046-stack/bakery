@@ -462,10 +462,10 @@ let isRecognizing = false;
 let recognition = null;
 
 const langVoiceMap = {
-  en: { code: 'en-US', label: 'English', pair: 'zh-TW|en' },
-  jp: { code: 'ja-JP', label: '日本語', pair: 'zh-TW|ja' },
-  kr: { code: 'ko-KR', label: '한국어', pair: 'zh-TW|ko' },
-  vn: { code: 'vi-VN', label: 'Tiếng Việt', pair: 'zh-TW|vi' }
+  en: { code: 'en-US', label: 'English', pair: 'zh-TW|en', gtxCode: 'en' },
+  jp: { code: 'ja-JP', label: '日本語', pair: 'zh-TW|ja', gtxCode: 'ja' },
+  kr: { code: 'ko-KR', label: '한국어', pair: 'zh-TW|ko', gtxCode: 'ko' },
+  vn: { code: 'vi-VN', label: 'Tiếng Việt', pair: 'zh-TW|vi', gtxCode: 'vi' }
 };
 
 const bakingKnowledgeBase = [
@@ -624,7 +624,7 @@ async function sendInput() {
   document.getElementById('userInput').value = '';
   currentScenarioKey = null;
 
-  // 1. 優先比對門市關鍵字庫 ➔ 輸出門市 SOP / 公關解答
+  // 1. 比對門市情境庫
   const matched = bakingKnowledgeBase.find(item => 
     item.keywords.some(kw => inputVal.includes(kw))
   );
@@ -635,25 +635,43 @@ async function sendInput() {
     return;
   }
 
-  // 2. 非關鍵字句子 ➔ 單純直譯模式 (Pure Translation)
-  document.getElementById('zhSummary').innerText = `💡 單純直譯模式：將店員輸入原汁原味翻譯為 ${langVoiceMap[currentLang].label}。`;
+  // 2. 單純直譯模式
+  document.getElementById('zhSummary').innerText = `💡 單純直譯模式：將店員輸入翻譯為 ${langVoiceMap[currentLang].label}。`;
   document.getElementById('targetSpeech').innerText = `"翻譯處理中..."`;
 
+  const targetCode = langVoiceMap[currentLang].gtxCode;
+  
+  // 引擎 A: Google GTX Client
+  try {
+    const googleUrl = `[suspicious link removed]{targetCode}&dt=t&q=${encodeURIComponent(inputVal)}`;
+    const res = await fetch(googleUrl);
+    const data = await res.json();
+    if (data && data[0] && data[0][0] && data[0][0][0]) {
+      const translatedText = data[0].map(item => item[0]).filter(Boolean).join('');
+      document.getElementById('targetSpeech').innerText = `"${translatedText}"`;
+      return;
+    }
+  } catch (e) {
+    console.warn("Google GTX fallback:", e);
+  }
+
+  // 引擎 B: MyMemory API 備援
   try {
     const langPair = langVoiceMap[currentLang].pair;
     const apiUrl = `[suspicious link removed]{encodeURIComponent(inputVal)}&langpair=${langPair}`;
-    
     const response = await fetch(apiUrl);
     const data = await response.json();
 
     if (data && data.responseData && data.responseData.translatedText) {
       document.getElementById('targetSpeech').innerText = `"${data.responseData.translatedText}"`;
-    } else {
-      document.getElementById('targetSpeech').innerText = `"${inputVal}"`;
+      return;
     }
   } catch (error) {
-    document.getElementById('targetSpeech').innerText = `"${inputVal}"`;
+    console.warn("MyMemory fallback:", error);
   }
+
+  // 最底層兜底顯示
+  document.getElementById('targetSpeech').innerText = `"${inputVal}"`;
 }
 
 function toggleMic() {
@@ -680,8 +698,9 @@ function toggleMic() {
     document.getElementById('userInput').placeholder = "正在聆聽中文，請說話...";
   };
 
+  // 🔥 修正語音辨識語法
   recognition.onresult = function(event) {
-    const transcript = event.results[transcript];
+    const transcript = event.results[0][0].transcript;
     document.getElementById('userInput').value = transcript;
     sendInput();
   };
