@@ -351,7 +351,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
   }
 
   .big-text { 
@@ -469,7 +468,6 @@ const langVoiceMap = {
   vn: { code: 'vi-VN', label: 'Tiếng Việt', pair: 'zh-TW|vi' }
 };
 
-// 門市全方位情境與解答數據庫
 const bakingKnowledgeBase = [
   {
     keywords: ["冰", "冷藏", "保存", "放幾天", "放多久", "保鮮"],
@@ -570,7 +568,7 @@ const multiLangData = {
     speech: {
       en: "Please bring used bowls and tools to our Self-Washing Area. We provide warm water, dish soap, and drying racks for your convenience!",
       jp: "ご使用済みのボウルや道具はセルフ洗面エリアへお持ちください。温水、洗剤、乾燥ラックをご用意しております！",
-      kr: "사용하신 용기와 도구는 셀프 세척 구역으로 가져가 주시면 됩니다. 따뜻한 물, 세제, 건조대가 준비되어 있습니다!",
+      kr: "사용하신 용기와 도구는 셀프 세척 구역으로 가져가 주시면 됩니다. 따뜻한 물, 세제, 건조대가準備되어 있습니다!",
       vn: "Vui lòng mang bát và dụng cụ đã sử dụng đến Khu Vực Tự Rửa. Chúng tôi có sẵn nước ấm, nước rửa bát và giá sấy khô!"
     }
   }
@@ -618,7 +616,6 @@ function renderCurrentSpeech() {
   }
 }
 
-// 🔥 升級版 AI 輸入處理引擎
 async function sendInput() {
   const inputVal = document.getElementById('userInput').value.trim();
   if (!inputVal) return;
@@ -627,7 +624,7 @@ async function sendInput() {
   document.getElementById('userInput').value = '';
   currentScenarioKey = null;
 
-  // 1. 優先匹配門市情境知識庫
+  // 1. 優先比對門市關鍵字庫 ➔ 輸出門市 SOP / 公關解答
   const matched = bakingKnowledgeBase.find(item => 
     item.keywords.some(kw => inputVal.includes(kw))
   );
@@ -638,8 +635,8 @@ async function sendInput() {
     return;
   }
 
-  // 2. 通用性對答處理
-  document.getElementById('zhSummary').innerText = `💡 AI 門市助理：針對「${inputVal}」生成親切解答與說明。`;
+  // 2. 非關鍵字句子 ➔ 單純直譯模式 (Pure Translation)
+  document.getElementById('zhSummary').innerText = `💡 單純直譯模式：將店員輸入原汁原味翻譯為 ${langVoiceMap[currentLang].label}。`;
   document.getElementById('targetSpeech').innerText = `"翻譯處理中..."`;
 
   try {
@@ -652,21 +649,11 @@ async function sendInput() {
     if (data && data.responseData && data.responseData.translatedText) {
       document.getElementById('targetSpeech').innerText = `"${data.responseData.translatedText}"`;
     } else {
-      fallbackTranslate(inputVal);
+      document.getElementById('targetSpeech').innerText = `"${inputVal}"`;
     }
   } catch (error) {
-    fallbackTranslate(inputVal);
+    document.getElementById('targetSpeech').innerText = `"${inputVal}"`;
   }
-}
-
-function fallbackTranslate(inputVal) {
-  const fallbackMap = {
-    en: `Regarding your request about "${inputVal}", our team is glad to assist you step by step!`,
-    jp: `「${inputVal}」について、スタッフがすぐにご案内いたします！`,
-    kr: `"${inputVal}"에 대해 직원이 친절하게 안내해 드리겠습니다!`,
-    vn: `Về "${inputVal}", nhân viên của chúng tôi sẽ hỗ trợ bạn từng bước!`
-  };
-  document.getElementById('targetSpeech').innerText = `"${fallbackMap[currentLang]}"`;
 }
 
 function toggleMic() {
