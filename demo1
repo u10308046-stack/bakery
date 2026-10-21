@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>自己做 DIY Baking - 店員 AI 隨身口譯 Web App</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { background-color: #f1f5f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 12px; }
+
+  /* 外層手機框模擬 */
+  .mobile-app-container {
+    width: 100%; max-width: 420px; height: 860px; background: #fcfaf7;
+    border-radius: 36px; box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+    display: flex; flex-direction: column; overflow: hidden; position: relative;
+    border: 1px solid #cbd5e1;
+  }
+
+  /* 頂部 Header */
+  .app-header {
+    background: #7c8b2e; color: #ffffff; padding: 20px 16px 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .header-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+  .header-sub { font-size: 11px; opacity: 0.9; font-weight: normal; }
+
+  .lang-selector { display: flex; gap: 4px; background: rgba(255,255,255,0.2); padding: 3px; border-radius: 20px; }
+  .lang-btn { font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 14px; color: #fff; cursor: pointer; border: none; background: transparent; }
+  .lang-btn.active { background: #ffffff; color: #7c8b2e; }
+
+  /* 快捷情境列 */
+  .scenarios-bar {
+    padding: 10px 12px; display: flex; gap: 8px; overflow-x: auto;
+    background: #f3efe6; border-bottom: 1px solid #e6dfd3;
+  }
+  .chip-btn {
+    background: #ffffff; border: 1.5px solid #dcd4c5; color: #4a3b32;
+    padding: 6px 12px; border-radius: 18px; font-size: 12px; font-weight: 700;
+    white-space: nowrap; cursor: pointer; transition: all 0.2s;
+  }
+  .chip-btn.active { background: #e05a10; color: #fff; border-color: #e05a10; }
+
+  /* 對話區域 */
+  .chat-body { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+
+  .msg-staff {
+    align-self: flex-end; background: #e2ebd0; color: #2d3a12;
+    padding: 10px 14px; border-radius: 16px 16px 2px 16px; max-width: 88%;
+    font-size: 13px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  }
+  .msg-meta { font-size: 10px; color: #6b7c46; margin-bottom: 4px; font-weight: bold; display: flex; justify-content: space-between; }
+
+  .ai-card {
+    align-self: flex-start; background: #ffffff; border: 1.5px solid #ffd0b3;
+    border-radius: 18px; padding: 14px; width: 98%; box-shadow: 0 4px 12px rgba(224,90,16,0.08);
+  }
+  .ai-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .ai-tag { background: #ffe8d6; color: #e05a10; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 10px; }
+  .zh-summary { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #f1f5f9; }
+
+  .speech-box { background: #fff8f3; border-left: 4px solid #e05a10; padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; }
+  .speech-text { font-size: 14px; font-weight: 700; color: #1e293b; line-height: 1.45; }
+
+  .action-buttons { display: flex; gap: 6px; }
+  .act-btn {
+    flex: 1; background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155;
+    padding: 8px 0; border-radius: 8px; font-size: 11px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .act-btn.primary { background: #e05a10; color: #ffffff; border-color: #e05a10; }
+
+  /* 雙語容器卡片 */
+  .card-display { background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 12px; }
+  .card-head { font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px; }
+  .card-body-item {
+    font-size: 12px; color: #475569; background: #f8fafc; padding: 6px 10px;
+    border-radius: 6px; margin-bottom: 4px; font-weight: 600; display: flex; justify-content: space-between;
+  }
+
+  /* 底部輸入列 */
+  .input-bar {
+    background: #ffffff; padding: 10px 14px 16px 14px; border-top: 1px solid #e2e8f0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mic-btn {
+    width: 38px; height: 38px; border-radius: 50%; background: #ffe8d6; color: #e05a10;
+    border: 1.5px solid #ffd0b3; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .text-input {
+    flex: 1; height: 38px; background: #f1f5f9; border: 1px solid #cbd5e1;
+    border-radius: 20px; padding: 0 14px; font-size: 13px; outline: none;
+  }
+  .send-btn {
+    width: 38px; height: 38px; border-radius: 50%; background: #7c8b2e; color: #ffffff;
+    border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* 大字 Modal */
+  .fullscreen-modal {
+    display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #ffffff; z-index: 999; padding: 24px; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+  }
+  .fullscreen-modal.active { display: flex; }
+  .big-text { font-size: 22px; font-weight: 800; color: #1e293b; line-height: 1.5; margin-bottom: 24px; }
+</style>
+</head>
+<body>
+
+<div class="mobile-app-container">
+  <!-- Header -->
+  <div class="app-header">
+    <div>
+      <div class="header-title">🤖 自己做 AI 口譯助理</div>
+      <div class="header-sub">Staff Real-time Translator</div>
+    </div>
+    <div class="lang-selector">
+      <button class="lang-btn active" onclick="setLang('en', this)">EN</button>
+      <button class="lang-btn" onclick="setLang('jp', this)">JP</button>
+      <button class="lang-btn" onclick="setLang('kr', this)">KR</button>
+      <button class="lang-btn" onclick="setLang('vn', this)">VN</button>
+    </div>
+  </div>
+
+  <!-- 快選情境 -->
+  <div class="scenarios-bar">
+    <button class="chip-btn active" onclick="selectScenario('birthday')">🎂 壽星條款 Policy</button>
+    <button class="chip-btn" onclick="selectScenario('allergen')">⚠️ 過敏原 Allergen</button>
+    <button class="chip-btn" onclick="selectScenario('location')">📍 器材定位 Map</button>
+    <button class="chip-btn" onclick="selectScenario('wash')">🧼 自助洗滌 Wash</button>
+  </div>
+
+  <!-- 對話內容區 -->
+  <div class="chat-body" id="chatBody">
+    <div class="msg-staff">
+      <div class="msg-meta"><span>店員提問 Staff Inquiry</span><span>14:32</span></div>
+      「顧客是壽星，問說為什麼朋友一定要再點一個品項，不能只陪他做蛋糕？」
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-header">
+        <div class="ai-tag">✨ AI 隨身口譯建議 Speech Suggestion</div>
+        <div style="font-size:10px; color:#94a3b8;">1.2s</div>
+      </div>
+      <div class="zh-summary">💡 說明重點：熱情祝賀壽星，並說明陪伴者需選擇製作品項或付陪伴費以維護門市體驗品質。</div>
+      
+      <div class="speech-box">
+        <div class="speech-text" id="targetSpeech">
+          "Happy Birthday! 🎉 Our Birthday Special offers a free cake for the birthday star! To ensure everyone has a great seat, companions are required to select a dessert or choose a companion fee. That way, both of you can enjoy the DIY fun together!"
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="act-btn primary" onclick="speakText()">🔊 播放發音</button>
+        <button class="act-btn" onclick="copyText()">📋 複製話術</button>
+        <button class="act-btn" onclick="showBigText()">📱 大字展示</button>
+      </div>
+    </div>
+
+    <div class="card-display">
+      <div class="card-head">🥣 門市容器對照 (Container Guide)</div>
+      <div class="card-body-item">
+        <span>🥣 彩色塑膠碗 Plastic Bowl</span>
+        <span style="color:#7c8b2e; font-weight:800;">粉類 / 冷藏食材</span>
+      </div>
+      <div class="card-body-item">
+        <span>🍶 白色瓷碗 Ceramic Bowl</span>
+        <span style="color:#e05a10; font-weight:800;">奶油 / 加熱液體</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部輸入列 -->
+  <div class="input-bar">
+    <button class="mic-btn" onclick="toggleMic()">🎙️</button>
+    <input type="text" id="userInput" class="text-input" placeholder="輸入或用語音問 AI 口譯...">
+    <button class="send-btn" onclick="sendInput()">⚡</button>
+  </div>
+
+  <!-- 大字展示 Modal -->
+  <div class="fullscreen-modal" id="bigTextModal">
+    <div class="big-text" id="bigTextContent"></div>
+    <button class="act-btn primary" style="padding:12px 24px; font-size:16px;" onclick="closeBigText()">✕ 關閉大字視窗</button>
+  </div>
+</div>
+
+<script>
+let currentLang = 'en';
+
+const scenarioData = {
+  birthday: {
+    inquiry: "「顧客是壽星，問說為什麼朋友一定要再點一個品項，不能只陪他做蛋糕？」",
+    summary: "💡 說明重點：熱情祝賀壽星，並說明陪伴者需選擇製作品項或付陪伴費。",
+    speech: "Happy Birthday! 🎉 Our Birthday Special offers a free cake for the birthday star! To ensure everyone has a great seat, companions are required to select a dessert or choose a companion fee. That way, both of you can enjoy the DIY fun together!"
+  },
+  allergen: {
+    inquiry: "「外籍顧客詢問這款月餅/蛋糕是否含有花生、堅果或蛋奶成分？」",
+    summary: "💡 說明重點：確認無堅果/花生成分，但含有麩質與蛋奶，並提供原料標示卡。",
+    speech: "This recipe is 100% peanut and tree-nut free! However, it contains dairy, eggs, and gluten. Please let us know if you have any severe allergies!"
+  },
+  location: {
+    inquiry: "「顧客找不到剪刀與方模具在哪裡？」",
+    summary: "💡 說明重點：引導至洞洞牆區 A2 與模具區 D 層架。",
+    speech: "The scissors are on the Pegboard Wall (Hook A2), and the Square Molds are located at Molds Station (Shelf D). I can walk you there!"
+  },
+  wash: {
+    inquiry: "「外籍顧客詢問用過的器具要放哪裡洗滌？」",
+    summary: "💡 說明重點：說明自助洗滌區位置，並提示溫水與烘乾設備。",
+    speech: "Please bring used bowls and tools to our Self-Washing Area. We provide warm water, dish soap, and drying racks for your convenience!"
+  }
+};
+
+function selectScenario(key) {
+  const data = scenarioData[key];
+  if (!data) return;
+  
+  document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+
+  document.querySelector('.msg-staff').innerHTML = `<div class="msg-meta"><span>店員提問 Staff Inquiry</span><span>14:35</span></div>${data.inquiry}`;
+  document.querySelector('.zh-summary').innerText = data.summary;
+  document.getElementById('targetSpeech').innerText = `"${data.speech}"`;
+}
+
+function speakText() {
+  const text = document.getElementById('targetSpeech').innerText;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = currentLang === 'en' ? 'en-US' : 'zh-TW';
+  window.speechSynthesis.speak(utterance);
+}
+
+function copyText() {
+  const text = document.getElementById('targetSpeech').innerText;
+  navigator.clipboard.writeText(text);
+  alert("已複製口譯話術至剪貼簿！");
+}
+
+function showBigText() {
+  const text = document.getElementById('targetSpeech').innerText;
+  document.getElementById('bigTextContent').innerText = text;
+  document.getElementById('bigTextModal').classList.add('active');
+}
+
+function closeBigText() {
+  document.getElementById('bigTextModal').classList.remove('active');
+}
+
+function setLang(lang, btn) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleMic() {
+  alert("🎙️ 語音辨識已啟動，請對著手機說話...");
+}
+
+function sendInput() {
+  const val = document.getElementById('userInput').value;
+  if(!val) return;
+  document.querySelector('.msg-staff').innerHTML = `<div class="msg-meta"><span>店員提問 Staff Inquiry</span><span>即時</span></div>「${val}」`;
+  document.getElementById('userInput').value = '';
+}
+</script>
+</body>
+</html>
